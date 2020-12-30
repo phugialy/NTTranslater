@@ -1,0 +1,4 @@
+   var Scan = (<TouchableOpacity
+      onPress={() => CamPermission() }>
+      <Text > Scan </Text>
+    </TouchableOpacity>
