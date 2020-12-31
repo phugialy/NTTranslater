@@ -1,10 +1,9 @@
 import React, { useState, useEffect,useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Alert } from 'react-native';
 import  {Camera}  from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
-import * as Permission from 'expo-permissions'
-
-
+import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 
 
@@ -13,6 +12,12 @@ function CameraScreen(props) {
   const [hasPermission, setHasPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
   const [medPermission, setMedPermission] = useState(null);
+  const data = {
+
+    text: '',
+    translated: '',
+    image: '',
+  };
 //  const [cameraRef,SetCameraRef] = useState(null);
   const cameraRef = useRef(null|Camera);
 
@@ -30,17 +35,55 @@ function CameraScreen(props) {
   if (hasPermission === false) {
     return <Text>No access to camera</Text>;
   }
-  takePicture = async () => {
+  var takePicture = async () => {
     if (cameraRef) {
-      let photo = await cameraRef.current.takePictureAsync();
-      const {MediaStatus} = await MediaLibrary.requestPermissionsAsync();
-      setMedPermission(MediaStatus === 'granted');
-      if (medPermission === null){}
-      if (medPermission === false){}
-      const asset = await MediaLibrary.saveToLibraryAsync(photo.uri);
-      MediaLibrary.createAlbumAsync('Expo', asset)
+      let photo = await cameraRef.current.takePictureAsync({onPictureSaved: onPictureSaved});
+      // const {MediaStatus} = await MediaLibrary.requestPermissionsAsync();
+      // setMedPermission(MediaStatus === 'granted');
+      // if (medPermission === null){}
+      // if (medPermission === false){}
+      // const asset = await MediaLibrary.saveToLibraryAsync(photo.uri);
+      // MediaLibrary.createAlbumAsync('Expo', asset)
 
     }
+  }
+  var makePostRequest = async (url,data) => {
+    var endPoint = url;
+    var headers = new Headers();
+    headers.append("Content-Type", "application/json");
+    var jsonBody = JSON.stringify(data)
+    var requestOptions = {method: 'POST', headers: headers, body: jsonBody, redirect: 'follow'};
+    //console.log(requestOptions);
+    var response = await fetch(endPoint, requestOptions).catch(error => {console.log(error); return;});
+    var response_text = await response.text();
+    return response_text;
+  }
+
+
+  var onPictureSaved = async photo => { 
+    // Compress Image
+    photo = await ImageManipulator.manipulateAsync(
+      photo.uri,
+      [],
+      { compress: 0.2, format: ImageManipulator.SaveFormat.JPEG }
+    );
+  
+
+    // Load image from filesystem in string Base64 form
+    var fileBase64String = await FileSystem
+    .readAsStringAsync(photo.uri, { encoding: FileSystem.EncodingType.Base64 })
+    .catch((error)=> {console.log("Could not load file:\n"+error);});
+
+    // Construct JSON body with our Base64 string and send it to our text parsing endpoint
+      var imageParserEndPoint = "https://us-central1-image-translation-1.cloudfunctions.net/translateImage";
+      var jsonBody = {"image_string":fileBase64String}
+      var parsed_text = await makePostRequest(imageParserEndPoint,jsonBody);
+      console.log("succeed translated");
+      data.text = parsed_text ;
+      console.log(data.text);
+      // data.setState( {text:parsed_text});
+      
+      await navigation.navigate('Result',{ item: data});
   }
   
   return (
@@ -61,7 +104,7 @@ function CameraScreen(props) {
           </TouchableOpacity>     
         
         
-          <TouchableOpacity style={styles.button} onPress ={() => takePicture()}> 
+          <TouchableOpacity style={styles.button} onPress ={() => {takePicture()}}> 
           <Text style={styles.text}> Capture</Text>
           </TouchableOpacity>
           
