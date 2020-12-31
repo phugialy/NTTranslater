@@ -2,7 +2,7 @@ import React, { useState, useEffect,useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import  {Camera}  from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
-
+import * as Permission from 'expo-permissions'
 
 
 
@@ -12,6 +12,7 @@ function CameraScreen(props) {
   const { navigation } = props;
   const [hasPermission, setHasPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
+  const [medPermission, setMedPermission] = useState(null);
 //  const [cameraRef,SetCameraRef] = useState(null);
   const cameraRef = useRef(null|Camera);
 
@@ -32,7 +33,13 @@ function CameraScreen(props) {
   takePicture = async () => {
     if (cameraRef) {
       let photo = await cameraRef.current.takePictureAsync();
-      console.log(photo);
+      const {MediaStatus} = await MediaLibrary.requestPermissionsAsync();
+      setMedPermission(MediaStatus === 'granted');
+      if (medPermission === null){}
+      if (medPermission === false){}
+      const asset = await MediaLibrary.saveToLibraryAsync(photo.uri);
+      MediaLibrary.createAlbumAsync('Expo', asset)
+
     }
   }
   
