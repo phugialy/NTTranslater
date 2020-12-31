@@ -6,33 +6,39 @@ import * as MediaLibrary from 'expo-media-library';
 
 
 
+
+
 function CameraScreen(props) {
-  const { navigation } = props
+  const { navigation } = props;
   const [hasPermission, setHasPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
 //  const [cameraRef,SetCameraRef] = useState(null);
-//  const cameraRef = useRef();
+  const cameraRef = useRef(null|Camera);
 
 
 
 
-  useEffect(() => {
-    (async () => {
+  useEffect(() => { (async () => {
       const { status } = await Camera.requestPermissionsAsync();
       setHasPermission(status === 'granted');
-    })();
-  }, []);
+    })();}, []);
 
   if (hasPermission === null) {
     return <View />;
-  }
+  } 
   if (hasPermission === false) {
     return <Text>No access to camera</Text>;
+  }
+  takePicture = async () => {
+    if (cameraRef) {
+      let photo = await cameraRef.current.takePictureAsync();
+      console.log(photo);
+    }
   }
   
   return (
     <View style={styles.container}>
-      <Camera style={styles.camera} type={type}  ref={(ref) => { ref = cam }}  >
+      <Camera style={styles.camera} type={type} ref={cameraRef} >
         <View style={styles.buttonContainer}>
           
           <TouchableOpacity
@@ -48,14 +54,9 @@ function CameraScreen(props) {
           </TouchableOpacity>     
         
         
-          <TouchableOpacity style={styles.button} onPress={async() => {
-               if(cameraRef){
-              let photo = await cameraRef.takePictureAsync().then(data => {
-                MediaLibrary.saveToLibraryAsync(data.uri);
-              console.log('photo', photo);
-            })
-          }
-          }}> </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress ={() => takePicture()}> 
+          <Text style={styles.text}> Capture</Text>
+          </TouchableOpacity>
           
       
           <TouchableOpacity
@@ -73,9 +74,10 @@ function CameraScreen(props) {
 }
 
 
+
 const _takePicture = async () => {
     
-  let photo = await cam.current.takePictureAsync();
+  let photo = await Camera.useRef().current.takePictureAsync();
   let assert = await MediaLibrary.createAssetAsync(photo);
   MediaLibrary.saveToLibraryAsync(localUri);
 
